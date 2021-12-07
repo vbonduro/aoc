@@ -2,25 +2,30 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
+	"strings"
+
+	"github.com/vbonduro/aoc/core"
 )
 
 type board struct {
 	score  uint
-	grid   [5][5]string
+	card   [][]string
 	solved bool
 }
 
-func (bingo *board) AddRow(line [5]string, row uint) {
-	bingo.grid[row] = line
-	for _, value_str := range bingo.grid[row] {
+func (bingo *board) AddRow(line []string) {
+	bingo.card = append(bingo.card, line)
+	row := len(bingo.card) - 1
+	for _, value_str := range bingo.card[row] {
 		value, _ := strconv.Atoi(string(value_str))
 		bingo.score += uint(value)
 	}
 }
 
 func (bingo board) find(value uint) (int, int, error) {
-	for i, row := range bingo.grid {
+	for i, row := range bingo.card {
 		for j, bingo_value_str := range row {
 			bingo_value, err := strconv.Atoi(string(bingo_value_str))
 			if err == nil && uint(bingo_value) == value {
@@ -28,33 +33,85 @@ func (bingo board) find(value uint) (int, int, error) {
 			}
 		}
 	}
-	return 0, 0, errors.New("Could not find value")
+	return 0, 0, errors.New("could not find value")
 }
 
-func (bingo *board) updateSolved(i int, j int) {
-	for x := 0; x < len(bingo.grid); x++ {
-		if bingo.grid[x][j] != "x" {
-			return
-		}
-		if bingo.grid[i][x] != "x" {
-			return
+func (bingo *board) checkSolvedRow(col int) bool {
+	for row := 0; row < len(bingo.card); row++ {
+		if bingo.card[row][col] != "x" {
+			return false
 		}
 	}
-	bingo.solved = true
+	return true
+}
+
+func (bingo *board) checkSolvedColumn(row int) bool {
+	for col := 0; col < len(bingo.card); col++ {
+		if bingo.card[row][col] != "x" {
+			return false
+		}
+	}
+	return true
+}
+
+func (bingo *board) checkSolved(i int, j int) bool {
+	return bingo.checkSolvedRow(j) || bingo.checkSolvedColumn(i)
 }
 
 func (bingo *board) Mark(value uint) {
 	i, j, err := bingo.find(value)
 
 	if err == nil {
-		value, _ := strconv.Atoi(string(bingo.grid[i][j]))
-		bingo.grid[i][j] = "x"
-		bingo.score -= uint(value)
-		bingo.updateSolved(i, j)
+		bingo.card[i][j] = "x"
+		fmt.Println(value)
+		fmt.Println(bingo.score)
+		bingo.score = bingo.score - value
+		fmt.Println(bingo.score)
+		bingo.solved = bingo.checkSolved(i, j)
 	}
 }
 
 type bingo_subsystem struct {
 	draw_numbers []uint
 	boards       []board
+}
+
+func (squid_game *bingo_subsystem) parseDrawNumbers(line string) {
+	draw_num_strs := strings.Split(line, ",")
+	for _, draw_num_str := range draw_num_strs {
+		draw_num, _ := strconv.Atoi(draw_num_str)
+		squid_game.draw_numbers = append(squid_game.draw_numbers, uint(draw_num))
+	}
+}
+
+func (squid_game *bingo_subsystem) Input(line string) {
+	if len(squid_game.draw_numbers) == 0 {
+		squid_game.parseDrawNumbers(line)
+	} else {
+		if len(line) == 0 {
+			var bingo board
+			squid_game.boards = append(squid_game.boards, bingo)
+		} else {
+			row_values := strings.Fields(line)
+			squid_game.boards[len(squid_game.boards)-1].AddRow(row_values)
+		}
+	}
+}
+
+func (squid_game *bingo_subsystem) Solution() {
+	for _, drawn_number := range squid_game.draw_numbers {
+		for _, board := range squid_game.boards {
+			board.Mark(drawn_number)
+			fmt.Println(board)
+			if board.solved {
+				fmt.Println(board.score * drawn_number)
+				return
+			}
+		}
+	}
+}
+
+func main() {
+	var squid_game bingo_subsystem
+	core.Solve("test_input.txt", &squid_game)
 }
