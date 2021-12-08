@@ -36,7 +36,7 @@ func (bingo board) find(value uint) (int, int, error) {
 	return 0, 0, errors.New("could not find value")
 }
 
-func (bingo *board) checkSolvedRow(col int) bool {
+func (bingo board) checkSolvedRow(col int) bool {
 	for row := 0; row < len(bingo.card); row++ {
 		if bingo.card[row][col] != "x" {
 			return false
@@ -45,7 +45,7 @@ func (bingo *board) checkSolvedRow(col int) bool {
 	return true
 }
 
-func (bingo *board) checkSolvedColumn(row int) bool {
+func (bingo board) checkSolvedColumn(row int) bool {
 	for col := 0; col < len(bingo.card); col++ {
 		if bingo.card[row][col] != "x" {
 			return false
@@ -54,7 +54,7 @@ func (bingo *board) checkSolvedColumn(row int) bool {
 	return true
 }
 
-func (bingo *board) checkSolved(i int, j int) bool {
+func (bingo board) checkSolved(i int, j int) bool {
 	return bingo.checkSolvedRow(j) || bingo.checkSolvedColumn(i)
 }
 
@@ -63,10 +63,7 @@ func (bingo *board) Mark(value uint) {
 
 	if err == nil {
 		bingo.card[i][j] = "x"
-		fmt.Println(value)
-		fmt.Println(bingo.score)
 		bingo.score = bingo.score - value
-		fmt.Println(bingo.score)
 		bingo.solved = bingo.checkSolved(i, j)
 	}
 }
@@ -100,12 +97,13 @@ func (squid_game *bingo_subsystem) Input(line string) {
 
 func (squid_game *bingo_subsystem) Solution() {
 	for _, drawn_number := range squid_game.draw_numbers {
-		for _, board := range squid_game.boards {
-			board.Mark(drawn_number)
-			fmt.Println(board)
-			if board.solved {
-				fmt.Println(board.score * drawn_number)
-				return
+		for i := range squid_game.boards {
+			bingo := &squid_game.boards[i]
+			if !bingo.solved {
+				bingo.Mark(drawn_number)
+				if bingo.solved {
+					fmt.Println(bingo.score * drawn_number)
+				}
 			}
 		}
 	}
@@ -113,5 +111,5 @@ func (squid_game *bingo_subsystem) Solution() {
 
 func main() {
 	var squid_game bingo_subsystem
-	core.Solve("test_input.txt", &squid_game)
+	core.Solve("inputs.txt", &squid_game)
 }
