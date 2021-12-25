@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -39,54 +38,57 @@ func makeLine(line string) hydrothermalLine {
 	return convertedLine
 }
 
-type straightHydrothermalVents struct {
+type hydrothermalVents struct {
 	grid      map[coordinate]uint
 	nOverlaps uint
 }
 
-func newStraightHydrothermalVents() *straightHydrothermalVents {
-	return &straightHydrothermalVents{make(map[coordinate]uint), 0}
+func newHydrothermalVents() *hydrothermalVents {
+	return &hydrothermalVents{make(map[coordinate]uint), 0}
 }
 
-func (oceanFloor *straightHydrothermalVents) markTheSpot(x coordinate) {
+func (oceanFloor *hydrothermalVents) markTheSpot(x coordinate) {
 	oceanFloor.grid[x] += 1
 	if oceanFloor.grid[x] == 2 {
 		oceanFloor.nOverlaps++
 	}
 }
 
-func (oceanFloor *straightHydrothermalVents) drawVerticalLine(line hydrothermalLine) {
-	y_coords := []int{int(line.from.y), int(line.to.y)}
-	sort.Ints(y_coords)
-	x := line.from.x
-	for y := y_coords[0]; y <= y_coords[1]; y++ {
-		oceanFloor.markTheSpot(coordinate{x, uint(y)})
+func (oceanFloor *hydrothermalVents) draw(line hydrothermalLine) {
+	xIncrement := 0
+	yIncrement := 0
+
+	if line.from.x < line.to.x {
+		xIncrement = 1
+	} else if line.from.x > line.to.x {
+		xIncrement = -1
+	}
+	if line.from.y < line.to.y {
+		yIncrement = 1
+	} else if line.from.y > line.to.y {
+		yIncrement = -1
+	}
+
+	location := line.from
+	for {
+		oceanFloor.markTheSpot(location)
+		location.x += uint(xIncrement)
+		location.y += uint(yIncrement)
+		if location == line.to {
+			oceanFloor.markTheSpot(location)
+			return
+		}
 	}
 }
 
-func (oceanFloor *straightHydrothermalVents) drawHorrizontalLine(line hydrothermalLine) {
-	x_coords := []int{int(line.from.x), int(line.to.x)}
-	sort.Ints(x_coords)
-	y := line.from.y
-	for x := x_coords[0]; x <= x_coords[1]; x++ {
-		oceanFloor.markTheSpot(coordinate{uint(x), y})
-	}
+func (oceanFloor *hydrothermalVents) Input(line string) {
+	oceanFloor.draw(makeLine(line))
 }
 
-func (oceanFloor *straightHydrothermalVents) Input(line string) {
-	hydrothermalVentLine := makeLine(line)
-	if hydrothermalVentLine.from.x == hydrothermalVentLine.to.x {
-		oceanFloor.drawVerticalLine(hydrothermalVentLine)
-	} else if hydrothermalVentLine.from.y == hydrothermalVentLine.to.y {
-		oceanFloor.drawHorrizontalLine(hydrothermalVentLine)
-	}
-}
-
-func (oceanFloor *straightHydrothermalVents) Solution() {
-	fmt.Println(oceanFloor)
+func (oceanFloor *hydrothermalVents) Solution() {
 	fmt.Println(oceanFloor.nOverlaps)
 }
 
 func main() {
-	core.Solve("input.txt", newStraightHydrothermalVents())
+	core.Solve("input.txt", newHydrothermalVents())
 }
