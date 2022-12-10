@@ -30,24 +30,49 @@ fn priority_sum(rucksacks: String) -> u64 {
 
 // Part 2
 
-// fn priority_sum_elf_groups(rucksacks: String) -> u64 {
-//     return rucksacks
-//         .lines()
-//         .array_chunks()
-//         .into_iter()
-//         .map(|group| calculate_elf_group_priority(group))
-//         .sum();
-// }
+fn calculate_elf_group_priority(group: &[&str]) -> u64 {
+    let mut elf_group = group.to_vec();
+    elf_group.sort_by(|a, b| b.len().cmp(&a.len()));
+    let common_item = elf_group[0]
+        .chars()
+        .find(|item| elf_group[1].contains(*item) && elf_group[2].contains(*item))
+        .unwrap();
+    return priority(common_item);
+}
+
+fn priority_sum_elf_groups(rucksacks: String) -> u64 {
+    return rucksacks
+        .lines()
+        .collect::<Vec<&str>>()
+        .chunks(3)
+        .map(calculate_elf_group_priority)
+        .sum();
+}
 
 fn main() {
-    println!("{}", priority_sum(input::get(2022, 3).unwrap()));
+    println!("Part 1: {}", priority_sum(input::get(2022, 3).unwrap()));
+    println!(
+        "Part 2: {}",
+        priority_sum_elf_groups(input::get(2022, 3).unwrap())
+    );
 }
 
 mod tests {
+    use crate::calculate_elf_group_priority;
     use crate::calculate_priority;
     #[test]
     fn priority_calculation_sample() {
         let rucksack = "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL";
         println!("{}", calculate_priority(rucksack));
+    }
+    #[test]
+    fn test_calculate_elf_group_priority() {
+        let rucksack = "vJrwpWtwJgWrhcsFMMfFFhFp
+jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL
+PmmdzqPrVvPwwTWBwg";
+        println!(
+            "{}",
+            calculate_elf_group_priority(rucksack.lines().collect::<Vec<&str>>().as_slice())
+        );
     }
 }
