@@ -1,5 +1,6 @@
 pub mod api;
 pub mod input;
+pub mod puzzle;
 
 #[cfg(test)]
 mod tests {
@@ -13,6 +14,8 @@ mod tests {
     #[test]
     fn send_solution() {
         let aoc_api = api::Client::new(2021, 1);
-        aoc_api.send_answer(api::PuzzleId::PartOne, 5).unwrap();
+        aoc_api
+            .send_answer(api::PuzzleId::PartOne, 5.to_string())
+            .unwrap();
     }
 }

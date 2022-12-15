@@ -1,14 +1,14 @@
 use dirs;
 use regex::Regex;
 use reqwest::header;
-use serde;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 use std::fs;
 
 #[derive(Debug)]
 enum SendAnswerError {
-    Wrong(u64),
+    Wrong(String),
     Waiting(u8, u8),
     AlreadyAnswered,
 }
@@ -36,15 +36,19 @@ pub struct Client {
     base_url: String,
 }
 
+#[derive(Debug, Copy, Clone)]
 pub enum PuzzleId {
     PartOne = 1,
     PartTwo = 2,
 }
 
-#[derive(serde::Serialize)]
-struct Solution {
-    level: u8,
-    answer: String,
+impl fmt::Display for PuzzleId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PuzzleId::PartOne => write!(f, "1"),
+            PuzzleId::PartTwo => write!(f, "2"),
+        }
+    }
 }
 
 impl Client {
@@ -71,20 +75,19 @@ impl Client {
         Ok(response.text()?)
     }
 
-    pub fn send_answer(&self, part: PuzzleId, answer: u64) -> Result<(), Box<dyn Error>> {
+    pub fn send_answer(&self, part: PuzzleId, answer: String) -> Result<(), Box<dyn Error>> {
         let url = self.base_url.clone() + "answer";
 
-        let response = self
-            .http_client
-            .post(url)
-            .form(&[("level", part as u64), ("answer", answer)])
-            .send()?
-            .text()?;
+        let mut params = HashMap::new();
+        params.insert("level", part.to_string());
+        params.insert("answer", answer.clone());
+
+        let response = self.http_client.post(url).form(&params).send()?.text()?;
         println!("{}", response);
         return Self::check_answer(answer, response);
     }
 
-    fn check_answer(answer: u64, response: String) -> Result<(), Box<dyn Error>> {
+    fn check_answer(answer: String, response: String) -> Result<(), Box<dyn Error>> {
         let timeout_expr = Regex::new(r"You have (\d*)m* *(\d+)s left to wait").unwrap();
         match response.as_str() {
             response if response.contains("not the right answer") => {

@@ -80,7 +80,7 @@ fn main() {
     let overlaps = total_overlaps(aoc_client.get_input().unwrap());
     println!("{}", overlaps);
     aoc_client
-        .send_answer(api::PuzzleId::PartTwo, overlaps)
+        .send_answer(api::PuzzleId::PartTwo, overlaps.to_string())
         .unwrap();
 }
 
