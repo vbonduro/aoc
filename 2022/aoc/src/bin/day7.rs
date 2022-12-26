@@ -26,7 +26,8 @@ impl Directory {
     pub fn append_from_ls(&mut self, ls_output: String) {
         let contents = ls_output.split_whitespace().collect::<Vec<&str>>();
         if contents[0] == "dir" {
-            self.sub_dirs.push(contents[1].to_string());
+            let subdir_path = format!("{}/{}", self.name, contents[1]);
+            self.sub_dirs.push(subdir_path);
         } else {
             self.files.push(File {
                 name: contents[1].to_string(),
@@ -37,10 +38,6 @@ impl Directory {
 
     pub fn files_size(&self) -> usize {
         return self.files.clone().into_iter().map(|file| file.size).sum();
-    }
-
-    pub fn is_leaf(self) -> bool {
-        return self.sub_dirs.is_empty();
     }
 }
 
@@ -69,7 +66,7 @@ impl FileSystem {
                         }
                     }
                     "ls" => {
-                        let cwd = history.last().unwrap();
+                        let cwd = history.join("/");
                         let mut dir = Directory::new(cwd.clone());
                         while let Some(ls_output) = output_lines_it.peek() {
                             if ls_output.starts_with('$') {
@@ -78,6 +75,7 @@ impl FileSystem {
                             dir.append_from_ls(String::from_str(ls_output).unwrap());
                             output_lines_it.next();
                         }
+                        println!("{}", cwd);
                         assert!(fs.nodes.insert(cwd.clone(), dir).is_none(), "{}", cwd);
                     }
                     _ => {
@@ -90,29 +88,8 @@ impl FileSystem {
         fs
     }
 
-    pub fn directory_sizes(&self) -> HashMap<String, usize> {
-        let cwd = &self.nodes[&String::from_str("/").unwrap()];
-        let mut dir_sizes = HashMap::new();
-
-        self.add_directory_size(&cwd, &mut dir_sizes);
-
-        dir_sizes
-    }
-
     pub fn root(&self) -> Directory {
         return self.nodes[&String::from_str("/").unwrap()].clone();
-    }
-
-    fn add_directory_size(&self, dir: &Directory, mut sizes: &mut HashMap<String, usize>) {
-        println!("add_directory_size: {} => {:p}", dir.name.clone(), sizes);
-        let mut size: usize = 0;
-        dir.sub_dirs.clone().into_iter().for_each(|dir_name| {
-            let sub_dir = self.nodes.get(&dir_name).unwrap();
-            self.add_directory_size(sub_dir, &mut sizes);
-            size += sizes.get(&dir_name).unwrap();
-        });
-        size += dir.files_size();
-        sizes.insert(dir.name.clone(), size);
     }
 }
 
@@ -132,11 +109,6 @@ impl DirectorySizes {
     }
 
     fn add_directory_size(&mut self, fs: &FileSystem, dir: &Directory) {
-        println!(
-            "start add_directory_size: {} => len {}",
-            dir.name.clone(),
-            self.size_map.len()
-        );
         let mut size: usize = 0;
         dir.sub_dirs.clone().into_iter().for_each(|dir_name| {
             let sub_dir = fs.nodes.get(&dir_name).unwrap();
@@ -145,27 +117,13 @@ impl DirectorySizes {
         });
         size += dir.files_size();
         self.size_map.insert(dir.name.clone(), size);
-        println!(
-            "end add_directory_size: {} => len {}",
-            dir.name.clone(),
-            self.size_map.len()
-        );
     }
 }
 
 fn sum_sizes_at_most(terminal_output: &String) -> String {
     let fs = FileSystem::from_terminal(terminal_output.clone());
-    // println!("Nodes:");
-    // println!("{:?}", fs);
-    //let dir_sizes = fs.directory_sizes();
     let dir_sizes = DirectorySizes::new(&fs);
-    // println!("Dir sizes:");
-    // println!("{:?}", dir_sizes);
-    println!(
-        "num nodes: {} num sizes: {}",
-        fs.nodes.len(),
-        dir_sizes.size_map.len()
-    );
+
     dir_sizes
         .size_map
         .into_iter()
@@ -175,10 +133,31 @@ fn sum_sizes_at_most(terminal_output: &String) -> String {
         .to_string()
 }
 
+fn size_of_dir_to_delete(terminal_output: &String) -> String {
+    let fs = FileSystem::from_terminal(terminal_output.clone());
+    let dir_sizes = DirectorySizes::new(&fs);
+
+    let disk_space = 70000000;
+    let unused_space_required = 30000000;
+
+    let used_space = dir_sizes.size_map.get(&String::from("/")).unwrap();
+    let unused_space = disk_space - used_space;
+    let target_dir_size = unused_space_required - unused_space;
+
+    dir_sizes
+        .size_map
+        .into_iter()
+        .filter(|(_, size)| *size >= target_dir_size)
+        .map(|(_, size)| size)
+        .min()
+        .unwrap()
+        .to_string()
+}
+
 fn main() {
-    let dry_run = true;
-    puzzle::Puzzle::new(2022, 7, puzzle::Id::PartOne).solve(sum_sizes_at_most, dry_run);
-    //puzzle::Puzzle::new(2022, 6, puzzle::Id::PartTwo).solve(start_of_frame_location, dry_run);
+    let dry_run = false;
+    //puzzle::Puzzle::new(2022, 7, puzzle::Id::PartOne).solve(sum_sizes_at_most, dry_run);
+    puzzle::Puzzle::new(2022, 7, puzzle::Id::PartTwo).solve(size_of_dir_to_delete, dry_run);
 }
 
 mod tests {
