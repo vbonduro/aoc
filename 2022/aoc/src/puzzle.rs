@@ -21,7 +21,7 @@ impl Puzzle {
             println!("Answer: {}", answer);
         } else {
             match self.client.send_answer(self.part, answer.clone()) {
-                Ok(()) => println!("🎅 You got the right answer and have earned another star! ⭐"),
+                Ok(()) => println!("🎅 You got the right answer and have earned another star!⭐"),
                 Err(error) => println!(
                     "😢 Your answer {} was not accepted. Here's your error: {}",
                     answer, error
