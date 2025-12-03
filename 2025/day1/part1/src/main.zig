@@ -3,11 +3,11 @@ const part1 = @import("part1");
 
 const Dial = struct {
     marker: u16 = 50,
-    pub const dial_size: u16 = 99;
+    pub const dial_size: u16 = 100;
 
     pub fn left(self: *Dial, clicks: u16) void {
-        const difference = if (self.marker > clicks) self.marker - clicks else clicks - self.marker;
-        self.marker = difference % dial_size;
+        const difference: i32 = @as(i32, self.marker) - @as(i32, clicks);
+        self.marker = @intCast(@mod((difference + dial_size), dial_size));
     }
 
     pub fn right(self: *Dial, clicks: u16) void {
@@ -30,7 +30,7 @@ const Rotation = struct {
     clicks: u16,
 
     pub fn from_string(str: []const u8) !Rotation {
-        var direction = Direction{};
+        var direction: Direction = Direction.Left;
         switch (str[0]) {
             'L' => direction = Direction.Left,
             'R' => direction = Direction.Right,
@@ -48,17 +48,18 @@ pub fn main() !void {
     defer input.close();
 
     var buf: [4096]u8 = undefined;
-    var reader = input.reader(input, &buf);
+    var threaded: std.Io.Threaded = .init_single_threaded;
+    var reader = input.reader(threaded.io(), &buf);
 
     var password: u16 = 0;
 
     while (try reader.interface.takeDelimiter('\n')) |line| {
-        const rotation = Rotation.from_string(line);
+        const rotation = try Rotation.from_string(line);
         switch (rotation.direction) {
             Direction.Left => combo_lock.left(rotation.clicks),
             Direction.Right => combo_lock.right(rotation.clicks),
         }
-
+        std.debug.print("marker {d} direction {s} clicks {d}\n", .{ combo_lock.get_marker(), @tagName(rotation.direction), rotation.clicks });
         if (combo_lock.get_marker() == 0) {
             password += 1;
         }
