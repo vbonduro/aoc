@@ -28,4 +28,5 @@ pub fn build(b: *std.Build) void {
 
     add_aoc_artifact(b, target, optimize, "day3", "part1");
     add_aoc_artifact(b, target, optimize, "day3", "part2");
+    add_aoc_artifact(b, target, optimize, "day4", "part1");
 }
